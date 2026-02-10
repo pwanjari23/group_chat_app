@@ -1,14 +1,17 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
+
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// app.use('/api/auth', require('./routes/auth.routes'));
-// app.use('/api/chats', require('./routes/chat.routes'));
-// app.use('/api/messages', require('./routes/message.routes'));
+app.use("/api/user", userRoutes);
+
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
 
 module.exports = app;

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import AuthCard from "../components/authCards";
-
+import illustration from "../assets/welcome-illustration.png";
 
 function Welcome() {
   const navigate = useNavigate();
@@ -14,8 +14,12 @@ function Welcome() {
 
         <p className="text-gray-500">A simple chat platform for everyday use</p>
 
-        <div className="h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-          <span className="text-gray-400">Illustration</span>
+        <div className="h-40 w-full bg-gray-100 rounded-lg overflow-hidden">
+          <img
+            src={illustration}
+            alt="Welcome Illustration"
+            className="w-full h-full object-cover"
+          />
         </div>
 
         <button
