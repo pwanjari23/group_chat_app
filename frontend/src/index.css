@@ -1,0 +1,7 @@
+@import "tailwindcss";
+body {
+  background-color: #f5f7fb;
+}
+.input {
+  @apply w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-teal-500;
+}
