@@ -16,6 +16,7 @@ function Login() {
 
       <div className="space-y-4">
         <input className="w-full input" placeholder="Email address" />
+        <input type="tel" className="w-full input" placeholder="Phone Number" />
         <input
           type="password"
           className="w-full input"

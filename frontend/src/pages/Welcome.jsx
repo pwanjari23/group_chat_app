@@ -15,7 +15,6 @@ function Welcome() {
         <p className="text-gray-500">A simple chat platform for everyday use</p>
 
         <div className="h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-          {/* Replace with illustration */}
           <span className="text-gray-400">Illustration</span>
         </div>
 

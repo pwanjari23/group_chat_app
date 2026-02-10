@@ -17,14 +17,14 @@ function Signup() {
         <input className="w-full input" placeholder="Name" />
         <input className="w-full input" placeholder="Email address" />
         <input
-          type="password"
+          type="tel"
           className="w-full input"
-          placeholder="Password"
+          placeholder="Phone Number"
         />
         <input
           type="password"
           className="w-full input"
-          placeholder="Confirm password"
+          placeholder="Password"
         />
 
         <button className="w-full bg-teal-500 text-white py-3 rounded-lg font-medium">
