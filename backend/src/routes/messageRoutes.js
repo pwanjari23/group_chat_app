@@ -1,8 +1,12 @@
+// routes/messageRoutes.js
 const express = require("express");
 const router = express.Router();
-const messageController = require("../controller/messageController");
+const { getMessages, sendMessage } = require("../controller/messageController");
 
-router.post("/", messageController.sendMessage);
-router.get("/", messageController.getMessages);
+// Get all messages between two users
+router.get("/", getMessages);
+
+// Send a new message
+router.post("/", sendMessage);
 
 module.exports = router;

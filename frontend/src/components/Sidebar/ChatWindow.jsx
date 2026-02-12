@@ -14,41 +14,58 @@ import {
 function ChatWindow() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+  const messagesEndRef = useRef(null);
 
-  // 🔥 Replace these later with real logged-in user IDs
+  // 🔥 Replace these with actual logged-in user & selected chat user
   const senderId = 1;
   const receiverId = 2;
 
-  const messagesEndRef = useRef(null);
-
-  // ✅ Fetch Messages
-  useEffect(() => {
-    fetchMessages();
-  }, []);
-
+  // -----------------------------
+  // Fetch Messages from Backend
+  // -----------------------------
   const fetchMessages = async () => {
     try {
       const response = await fetch(
         `http://localhost:5000/api/messages?senderId=${senderId}&receiverId=${receiverId}`
       );
       const data = await response.json();
-      setMessages(data);
-      scrollToBottom();
+
+      if (Array.isArray(data)) {
+        setMessages(data);
+        scrollToBottom();
+      } else {
+        console.error("Expected array from API, got:", data);
+      }
     } catch (error) {
       console.error("Error fetching messages:", error);
     }
   };
 
-  // ✅ Send Message
+  useEffect(() => {
+    fetchMessages();
+
+    // 🔁 Auto-refresh every 3 seconds
+    const interval = setInterval(fetchMessages, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // -----------------------------
+  // Scroll to bottom
+  // -----------------------------
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // -----------------------------
+  // Send Message to Backend
+  // -----------------------------
   const handleSend = async () => {
     if (!newMessage.trim()) return;
 
     try {
       const response = await fetch("http://localhost:5000/api/messages", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           senderId,
           receiverId,
@@ -58,7 +75,6 @@ function ChatWindow() {
 
       const savedMessage = await response.json();
 
-      // Instantly update UI
       setMessages((prev) => [...prev, savedMessage]);
       setNewMessage("");
       scrollToBottom();
@@ -67,17 +83,13 @@ function ChatWindow() {
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
     <aside
       className="
         top-6 left-6
         w-[940px]
-        h-full                    
-        bg-gray-50  
+        h-full
+        bg-gray-50
         rounded-3xl
         shadow-xl
         flex flex-col
@@ -96,7 +108,6 @@ function ChatWindow() {
               />
               <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-400 rounded-full ring-2 ring-white" />
             </div>
-
             <div>
               <h2 className="font-semibold text-gray-900 text-lg">
                 Darrell Mckinney
@@ -106,7 +117,6 @@ function ChatWindow() {
               </p>
             </div>
           </div>
-
           <div className="flex items-center gap-6 text-gray-600">
             <button className="hover:text-indigo-600 transition-colors">
               <Phone className="w-6 h-6" />
@@ -122,46 +132,41 @@ function ChatWindow() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8 bg-gray-50">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${
-                msg.senderId === senderId
-                  ? "justify-end"
-                  : "justify-start"
-              }`}
-            >
+          {Array.isArray(messages) &&
+            messages.map((msg) => (
               <div
-                className={`
-                  max-w-2xl
-                  px-6 py-4 rounded-2xl 
-                  shadow-sm
-                  ${
-                    msg.senderId === senderId
-                      ? "bg-indigo-50 text-gray-900 rounded-br-none"
-                      : "bg-white text-gray-900 rounded-bl-none border border-gray-200"
-                  }
-                `}
+                key={msg.id}
+                className={`flex ${
+                  msg.senderId === senderId ? "justify-end" : "justify-start"
+                }`}
               >
-                <p className="text-base leading-relaxed">
-                  {msg.message}
-                </p>
+                <div
+                  className={`
+                    max-w-2xl px-6 py-4 rounded-2xl shadow-sm
+                    ${
+                      msg.senderId === senderId
+                        ? "bg-indigo-50 text-gray-900 rounded-br-none"
+                        : "bg-white text-gray-900 rounded-bl-none border border-gray-200"
+                    }
+                  `}
+                >
+                  <p className="text-base leading-relaxed">{msg.message}</p>
 
-                <div className="mt-2 flex items-center gap-3 justify-end">
-                  <span className="text-sm text-gray-500">
-                    {new Date(msg.createdAt).toLocaleTimeString()}
-                  </span>
-
-                  {msg.senderId === senderId && (
-                    <div className="text-indigo-500">
-                      <CheckCheck className="w-5 h-5" />
-                    </div>
-                  )}
+                  <div className="mt-2 flex items-center gap-3 justify-end">
+                    <span className="text-sm text-gray-500">
+                      {msg.createdAt
+                        ? new Date(msg.createdAt).toLocaleTimeString()
+                        : ""}
+                    </span>
+                    {msg.senderId === senderId && (
+                      <div className="text-indigo-500">
+                        <CheckCheck className="w-5 h-5" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-
+            ))}
           <div ref={messagesEndRef} />
         </div>
 
@@ -171,23 +176,17 @@ function ChatWindow() {
             <button className="text-gray-500 hover:text-indigo-600">
               <Smile className="w-7 h-7" />
             </button>
-
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Type your message here..."
-              className="
-                flex-1 bg-transparent outline-none 
-                text-gray-800 placeholder-gray-500 text-base
-              "
+              className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-500 text-base"
             />
-
             <button className="text-gray-500 hover:text-indigo-600">
               <Mic className="w-7 h-7" />
             </button>
-
             <button
               onClick={handleSend}
               className="text-indigo-600 hover:text-indigo-700"
