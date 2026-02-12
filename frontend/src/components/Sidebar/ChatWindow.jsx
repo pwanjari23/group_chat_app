@@ -1,5 +1,5 @@
 // components/Chat/ChatWindow.jsx
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Check,
   CheckCheck,
@@ -12,41 +12,70 @@ import {
 } from "lucide-react";
 
 function ChatWindow() {
-  const messages = [
-    {
-      text: "It's a friend's bday this weekend, do you want to come?",
-      time: "Wednesday 7:30 pm",
-      isSentByMe: false,
-    },
-    {
-      text: "Sorry, but this weekend is a girls night with Dianne and Bessie 🥰",
-      time: "Wednesday 7:36 pm",
-      isSentByMe: true,
-      status: "read",
-    },
-    {
-      text: "But we can go out tomorrow night if you want!",
-      time: "Wednesday 7:36 pm",
-      isSentByMe: true,
-      status: "read",
-    },
-    {
-      text: "Ok, perfect! I'll text you tomorrow!",
-      time: "Wednesday 8:21 pm",
-      isSentByMe: false,
-    },
-    {
-      text: "See you tonight? I've heard of a great restaurant near Philip's house 😊",
-      time: "Today 3:15 pm",
-      isSentByMe: false,
-    },
-  ];
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+
+  // 🔥 Replace these later with real logged-in user IDs
+  const senderId = 1;
+  const receiverId = 2;
+
+  const messagesEndRef = useRef(null);
+
+  // ✅ Fetch Messages
+  useEffect(() => {
+    fetchMessages();
+  }, []);
+
+  const fetchMessages = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/messages?senderId=${senderId}&receiverId=${receiverId}`
+      );
+      const data = await response.json();
+      setMessages(data);
+      scrollToBottom();
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  // ✅ Send Message
+  const handleSend = async () => {
+    if (!newMessage.trim()) return;
+
+    try {
+      const response = await fetch("http://localhost:5000/api/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          senderId,
+          receiverId,
+          message: newMessage,
+        }),
+      });
+
+      const savedMessage = await response.json();
+
+      // Instantly update UI
+      setMessages((prev) => [...prev, savedMessage]);
+      setNewMessage("");
+      scrollToBottom();
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
     <aside
       className="
         top-6 left-6
-        w-3xl
+        w-[940px]
         h-full                    
         bg-gray-50  
         rounded-3xl
@@ -57,12 +86,12 @@ function ChatWindow() {
     >
       <div className="flex flex-col h-full bg-gray-50">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shadow-xl rounded-3xl">
+        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shadow-xl">
           <div className="flex items-center gap-4">
             <div className="relative">
               <img
                 src="https://randomuser.me/api/portraits/men/65.jpg"
-                alt="Darrell Mckinney"
+                alt="User"
                 className="w-12 h-12 rounded-2xl object-cover shadow-sm"
               />
               <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-400 rounded-full ring-2 ring-white" />
@@ -73,7 +102,7 @@ function ChatWindow() {
                 Darrell Mckinney
               </h2>
               <p className="text-sm text-emerald-600">
-                Online • Last seen 3:12 pm
+                Online • Last seen recently
               </p>
             </div>
           </div>
@@ -91,45 +120,52 @@ function ChatWindow() {
           </div>
         </div>
 
-        {/* Messages - now has more horizontal space */}
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8 bg-gray-50">
-          {messages.map((msg, index) => (
+          {messages.map((msg) => (
             <div
-              key={index}
-              className={`flex ${msg.isSentByMe ? "justify-end" : "justify-start"}`}
+              key={msg.id}
+              className={`flex ${
+                msg.senderId === senderId
+                  ? "justify-end"
+                  : "justify-start"
+              }`}
             >
               <div
                 className={`
-                max-w-2xl        /* ← increased max width so bubbles can be much wider */
-                px-6 py-4 rounded-2xl 
-                shadow-sm
-                ${
-                  msg.isSentByMe
-                    ? "bg-indigo-50 text-gray-900 rounded-br-none"
-                    : "bg-white text-gray-900 rounded-bl-none border border-gray-200"
-                }
-              `}
+                  max-w-2xl
+                  px-6 py-4 rounded-2xl 
+                  shadow-sm
+                  ${
+                    msg.senderId === senderId
+                      ? "bg-indigo-50 text-gray-900 rounded-br-none"
+                      : "bg-white text-gray-900 rounded-bl-none border border-gray-200"
+                  }
+                `}
               >
-                <p className="text-base leading-relaxed">{msg.text}</p>
+                <p className="text-base leading-relaxed">
+                  {msg.message}
+                </p>
 
                 <div className="mt-2 flex items-center gap-3 justify-end">
-                  <span className="text-sm text-gray-500">{msg.time}</span>
-                  {msg.isSentByMe && (
+                  <span className="text-sm text-gray-500">
+                    {new Date(msg.createdAt).toLocaleTimeString()}
+                  </span>
+
+                  {msg.senderId === senderId && (
                     <div className="text-indigo-500">
-                      {msg.status === "read" ? (
-                        <CheckCheck className="w-5 h-5" />
-                      ) : (
-                        <Check className="w-5 h-5" />
-                      )}
+                      <CheckCheck className="w-5 h-5" />
                     </div>
                   )}
                 </div>
               </div>
             </div>
           ))}
+
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area - wider feel */}
+        {/* Input Area */}
         <div className="px-8 py-5 bg-white border-t border-gray-200">
           <div className="flex items-center gap-4 bg-gray-100 rounded-2xl px-6 py-4">
             <button className="text-gray-500 hover:text-indigo-600">
@@ -138,17 +174,24 @@ function ChatWindow() {
 
             <input
               type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Type your message here..."
               className="
-              flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-500 text-base
-            "
+                flex-1 bg-transparent outline-none 
+                text-gray-800 placeholder-gray-500 text-base
+              "
             />
 
             <button className="text-gray-500 hover:text-indigo-600">
               <Mic className="w-7 h-7" />
             </button>
 
-            <button className="text-indigo-600 hover:text-indigo-700">
+            <button
+              onClick={handleSend}
+              className="text-indigo-600 hover:text-indigo-700"
+            >
               <Send className="w-7 h-7" />
             </button>
           </div>
