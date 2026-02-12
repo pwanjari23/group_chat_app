@@ -10,18 +10,22 @@ import {
   Mic,
   Send,
 } from "lucide-react";
+import { io } from "socket.io-client";
+
+// Connect to backend WebSocket server
+const socket = io("http://localhost:5000");
 
 function ChatWindow() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
 
-  // 🔥 Replace these with actual logged-in user & selected chat user
+  // 🔥 Replace with actual logged-in user & selected chat user
   const senderId = 1;
   const receiverId = 2;
 
   // -----------------------------
-  // Fetch Messages from Backend
+  // Fetch Messages from Backend on load
   // -----------------------------
   const fetchMessages = async () => {
     try {
@@ -44,25 +48,38 @@ function ChatWindow() {
   useEffect(() => {
     fetchMessages();
 
-    // 🔁 Auto-refresh every 3 seconds
-    const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
+    // -----------------------------
+    // Listen to live messages via WebSocket
+    // -----------------------------
+    socket.on("receiveMessage", (msg) => {
+      // Only show messages relevant to this chat
+      if (
+        (msg.senderId === senderId && msg.receiverId === receiverId) ||
+        (msg.senderId === receiverId && msg.receiverId === senderId)
+      ) {
+        setMessages((prev) => [...prev, msg]);
+        scrollToBottom();
+      }
+    });
+
+    return () => socket.off("receiveMessage");
   }, []);
 
   // -----------------------------
-  // Scroll to bottom
+  // Scroll to bottom helper
   // -----------------------------
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   // -----------------------------
-  // Send Message to Backend
+  // Send Message to Backend & WebSocket
   // -----------------------------
   const handleSend = async () => {
     if (!newMessage.trim()) return;
 
     try {
+      // Save message to DB
       const response = await fetch("http://localhost:5000/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,6 +92,10 @@ function ChatWindow() {
 
       const savedMessage = await response.json();
 
+      // Send live update to all connected clients
+      socket.emit("sendMessage", savedMessage);
+
+      // Update UI locally
       setMessages((prev) => [...prev, savedMessage]);
       setNewMessage("");
       scrollToBottom();
