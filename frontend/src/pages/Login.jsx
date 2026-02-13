@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthCard from "../components/authCards";
+import { connectSocket } from "../services/socket";
 
 function Login() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ function Login() {
       alert(res.data.message); 
 
       localStorage.setItem("token", res.data.token);
+      connectSocket(res.data.token);
       
       navigate("/dashboard");
     } catch (err) {
