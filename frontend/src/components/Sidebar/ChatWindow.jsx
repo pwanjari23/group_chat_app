@@ -1,4 +1,3 @@
-// components/Chat/ChatWindow.jsx
 import React, { useState, useEffect, useRef } from "react";
 import {
   Check,
@@ -10,27 +9,20 @@ import {
   Mic,
   Send,
 } from "lucide-react";
-import { io } from "socket.io-client";
-
-// Connect to backend WebSocket server
-const socket = io("http://localhost:5000");
+import socket from "../../services/socket";
 
 function ChatWindow() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
 
-  // 🔥 Replace with actual logged-in user & selected chat user
   const senderId = 1;
   const receiverId = 2;
 
-  // -----------------------------
-  // Fetch Messages from Backend on load
-  // -----------------------------
   const fetchMessages = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/messages?senderId=${senderId}&receiverId=${receiverId}`
+        `http://localhost:5000/api/messages?senderId=${senderId}&receiverId=${receiverId}`,
       );
       const data = await response.json();
 
@@ -48,11 +40,12 @@ function ChatWindow() {
   useEffect(() => {
     fetchMessages();
 
-    // -----------------------------
-    // Listen to live messages via WebSocket
-    // -----------------------------
+    socket.connect(); 
+    socket.on("connect", () => {
+      console.log("Connected:", socket.id);
+    });
+
     socket.on("receiveMessage", (msg) => {
-      // Only show messages relevant to this chat
       if (
         (msg.senderId === senderId && msg.receiverId === receiverId) ||
         (msg.senderId === receiverId && msg.receiverId === senderId)
@@ -62,24 +55,20 @@ function ChatWindow() {
       }
     });
 
-    return () => socket.off("receiveMessage");
+    return () => {
+      socket.off("receiveMessage");
+      socket.disconnect(); // 🔥 cleanup
+    };
   }, []);
 
-  // -----------------------------
-  // Scroll to bottom helper
-  // -----------------------------
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // -----------------------------
-  // Send Message to Backend & WebSocket
-  // -----------------------------
   const handleSend = async () => {
     if (!newMessage.trim()) return;
 
     try {
-      // Save message to DB
       const response = await fetch("http://localhost:5000/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -92,10 +81,8 @@ function ChatWindow() {
 
       const savedMessage = await response.json();
 
-      // Send live update to all connected clients
       socket.emit("sendMessage", savedMessage);
 
-      // Update UI locally
       setMessages((prev) => [...prev, savedMessage]);
       setNewMessage("");
       scrollToBottom();
@@ -118,7 +105,6 @@ function ChatWindow() {
       "
     >
       <div className="flex flex-col h-full bg-gray-50">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shadow-xl">
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -151,7 +137,6 @@ function ChatWindow() {
           </div>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8 bg-gray-50">
           {Array.isArray(messages) &&
             messages.map((msg) => (
@@ -191,7 +176,6 @@ function ChatWindow() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
         <div className="px-8 py-5 bg-white border-t border-gray-200">
           <div className="flex items-center gap-4 bg-gray-100 rounded-2xl px-6 py-4">
             <button className="text-gray-500 hover:text-indigo-600">

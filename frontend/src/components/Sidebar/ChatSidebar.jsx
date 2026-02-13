@@ -91,6 +91,7 @@ function ChatSidebar() {
           return (
             <button
               key={conv.name}
+              onClick={() => onSelectChat?.(conv)}
               className={`
                 w-full flex items-start gap-4 p-4 rounded-2xl
                 transition-all duration-200

@@ -20,8 +20,6 @@ exports.sendMessage = async (req, res) => {
 exports.getMessages = async (req, res) => {
   try {
     const { senderId, receiverId } = req.query;
-
-    // Fetch all messages between sender and receiver
     const messages = await Message.findAll({
       where: {
         [Op.or]: [
@@ -29,10 +27,10 @@ exports.getMessages = async (req, res) => {
           { senderId: receiverId, receiverId: senderId },
         ],
       },
-      order: [["createdAt", "ASC"]], // oldest first
+      order: [["createdAt", "ASC"]], 
     });
 
-    res.json(messages); // send array to frontend
+    res.json(messages); 
   } catch (error) {
     console.error("GET MESSAGES ERROR:", error);
     res.status(500).json({ error: error.message });

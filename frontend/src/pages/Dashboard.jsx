@@ -5,7 +5,7 @@ import ChatWindow from "../components/Sidebar/ChatWindow";
 
 function Dashboard() {
   return (
-    <div className="flex h-screen p-6 gap-4">
+    <div className="flex bg-gradient-to-r from-sky-300 to-blue-100 h-screen p-6 gap-4">
       <div className="w-48 flex-shrink-0 h-full">
         <Sidebar />
       </div>
