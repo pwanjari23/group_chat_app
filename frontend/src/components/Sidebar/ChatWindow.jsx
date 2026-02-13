@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Check,
   CheckCheck,
   Phone,
   Video,
@@ -16,13 +15,15 @@ function ChatWindow() {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
 
-  const senderId = 1;
-  const receiverId = 2;
+  const senderId = 1;   // TODO: replace with logged-in user id
+  const receiverId = 2; // TODO: replace with selected chat user id
+
+  const roomId = [senderId, receiverId].sort().join("_"); // unique room id
 
   const fetchMessages = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/messages?senderId=${senderId}&receiverId=${receiverId}`,
+        `http://localhost:5000/api/messages?senderId=${senderId}&receiverId=${receiverId}`
       );
       const data = await response.json();
 
@@ -40,12 +41,14 @@ function ChatWindow() {
   useEffect(() => {
     fetchMessages();
 
-    socket.connect(); 
+    socket.connect();
+
     socket.on("connect", () => {
       console.log("Connected:", socket.id);
+      socket.emit("join_room", { roomId }); // Join the personal chat room
     });
 
-    socket.on("receiveMessage", (msg) => {
+    socket.on("new_message", (msg) => {
       if (
         (msg.senderId === senderId && msg.receiverId === receiverId) ||
         (msg.senderId === receiverId && msg.receiverId === senderId)
@@ -56,10 +59,10 @@ function ChatWindow() {
     });
 
     return () => {
-      socket.off("receiveMessage");
-      socket.disconnect(); // 🔥 cleanup
+      socket.off("new_message");
+      socket.disconnect();
     };
-  }, []);
+  }, [receiverId]); // refetch & reconnect if chat partner changes
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -81,7 +84,7 @@ function ChatWindow() {
 
       const savedMessage = await response.json();
 
-      socket.emit("sendMessage", savedMessage);
+      socket.emit("new_message", { ...savedMessage, roomId });
 
       setMessages((prev) => [...prev, savedMessage]);
       setNewMessage("");
@@ -92,18 +95,7 @@ function ChatWindow() {
   };
 
   return (
-    <aside
-      className="
-        top-6 left-6
-        w-[940px]
-        h-full
-        bg-gray-50
-        rounded-3xl
-        shadow-xl
-        flex flex-col
-        overflow-hidden
-      "
-    >
+    <aside className="top-6 left-6 w-[940px] h-full bg-gray-50 rounded-3xl shadow-xl flex flex-col overflow-hidden">
       <div className="flex flex-col h-full bg-gray-50">
         <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shadow-xl">
           <div className="flex items-center gap-4">
@@ -116,12 +108,8 @@ function ChatWindow() {
               <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-400 rounded-full ring-2 ring-white" />
             </div>
             <div>
-              <h2 className="font-semibold text-gray-900 text-lg">
-                Darrell Mckinney
-              </h2>
-              <p className="text-sm text-emerald-600">
-                Online • Last seen recently
-              </p>
+              <h2 className="font-semibold text-gray-900 text-lg">Darrell Mckinney</h2>
+              <p className="text-sm text-emerald-600">Online • Last seen recently</p>
             </div>
           </div>
           <div className="flex items-center gap-6 text-gray-600">
@@ -142,27 +130,20 @@ function ChatWindow() {
             messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex ${
-                  msg.senderId === senderId ? "justify-end" : "justify-start"
-                }`}
+                className={`flex ${msg.senderId === senderId ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`
-                    max-w-2xl px-6 py-4 rounded-2xl shadow-sm
-                    ${
-                      msg.senderId === senderId
-                        ? "bg-indigo-50 text-gray-900 rounded-br-none"
-                        : "bg-white text-gray-900 rounded-bl-none border border-gray-200"
-                    }
-                  `}
+                  className={`max-w-2xl px-6 py-4 rounded-2xl shadow-sm ${
+                    msg.senderId === senderId
+                      ? "bg-indigo-50 text-gray-900 rounded-br-none"
+                      : "bg-white text-gray-900 rounded-bl-none border border-gray-200"
+                  }`}
                 >
                   <p className="text-base leading-relaxed">{msg.message}</p>
 
                   <div className="mt-2 flex items-center gap-3 justify-end">
                     <span className="text-sm text-gray-500">
-                      {msg.createdAt
-                        ? new Date(msg.createdAt).toLocaleTimeString()
-                        : ""}
+                      {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() : ""}
                     </span>
                     {msg.senderId === senderId && (
                       <div className="text-indigo-500">
@@ -192,10 +173,7 @@ function ChatWindow() {
             <button className="text-gray-500 hover:text-indigo-600">
               <Mic className="w-7 h-7" />
             </button>
-            <button
-              onClick={handleSend}
-              className="text-indigo-600 hover:text-indigo-700"
-            >
+            <button onClick={handleSend} className="text-indigo-600 hover:text-indigo-700">
               <Send className="w-7 h-7" />
             </button>
           </div>

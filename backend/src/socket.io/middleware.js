@@ -15,6 +15,7 @@ const socketAuth = async (socket, next) => {
   } catch (err) {
     next(new Error("Authentication error: Invalid token"));
   }
+ 
 };
 
 module.exports = socketAuth;
