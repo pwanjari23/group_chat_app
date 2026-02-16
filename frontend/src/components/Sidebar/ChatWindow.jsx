@@ -122,17 +122,27 @@ function ChatWindow() {
 
   const handleJoinGroup = async (groupId) => {
     setCurrentGroup(groupId);
+
     socket.emit("join_group", { groupId });
-    fetchGroupMessages(groupId); // fetch messages from DB
+    console.log("Joined group:", groupId);
+
+    // Fetch previous group messages from backend if you saved them
+    const res = await fetch(
+      `http://localhost:5000/api/group_messages?groupId=${groupId}`,
+    );
+    const data = await res.json();
+    setMessages(data || []);
   };
 
   const handleSendGroupMessage = () => {
     if (!newMessage.trim() || !currentGroup) return;
+
     socket.emit("group_message", {
       groupId: currentGroup,
       senderId: loggedInUser.id,
       message: newMessage,
     });
+
     setNewMessage("");
   };
 

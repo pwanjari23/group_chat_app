@@ -7,11 +7,9 @@ import { connectSocket } from "../services/socket";
 function Dashboard() {
   useEffect(() => {
     const token = localStorage.getItem("token");
-
-    if (token) {
-      connectSocket(token);
-    }
+    if (token) connectSocket(token);
   }, []);
+
   return (
     <div className="flex bg-gradient-to-r from-sky-300 to-blue-100 h-screen p-6 gap-4">
       <div className="w-48 flex-shrink-0 h-full">
@@ -19,7 +17,10 @@ function Dashboard() {
       </div>
 
       <div className="w-80 flex-shrink-0 h-full">
-        <ChatSidebar />
+        <ChatSidebar
+          onSelectChat={(user) => console.log("Start chat with:", user)}
+          onJoinGroup={(groupId) => console.log("Join group:", groupId)}
+        />
       </div>
 
       <div className="w-90 flex-shrink-0 h-full">
