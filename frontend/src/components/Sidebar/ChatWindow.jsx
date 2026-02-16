@@ -17,11 +17,18 @@ function ChatWindow() {
   const [receiverId, setReceiverId] = useState(null); // ✅ add this
   const [receiverEmail, setReceiverEmail] = useState(""); // you already have this
   const [roomId, setRoomId] = useState(""); // store current room
+  const [currentGroup, setCurrentGroup] = useState(null);
 
   const loggedInUser = JSON.parse(localStorage.getItem("user")) || {};
   const senderId = loggedInUser.id;
   if (!senderId) {
     console.error("No logged-in user found. Make sure to login first.");
+  }
+
+  if (!loggedInUser?.id) {
+    return (
+      <div className="p-4 text-center text-red-500">Please login first.</div>
+    );
   }
 
   const fetchMessages = async () => {
@@ -43,6 +50,17 @@ function ChatWindow() {
   };
 
   useEffect(() => {
+    socket.on("new_group_message", (msg) => {
+      if (msg.groupId === currentGroup) {
+        setMessages((prev) => [...prev, msg]);
+        scrollToBottom();
+      }
+    });
+
+    return () => socket.off("new_group_message");
+  }, [currentGroup]);
+
+  useEffect(() => {
     const currentChat = JSON.parse(localStorage.getItem("currentChat"));
     if (currentChat) {
       setReceiverId(currentChat.id);
@@ -51,6 +69,9 @@ function ChatWindow() {
 
       socket.emit("join_room", { roomId: currentChat.roomId });
       console.log("Rejoined room after refresh:", currentChat.roomId);
+
+      // Fetch messages automatically
+      fetchMessages();
     }
   }, []);
 
@@ -99,49 +120,78 @@ function ChatWindow() {
     }
   };
 
-const handleJoinRoom = async () => {
-  if (!receiverEmail.trim()) return;
+  const handleJoinGroup = async (groupId) => {
+    setCurrentGroup(groupId);
+    socket.emit("join_group", { groupId });
+    fetchGroupMessages(groupId); // fetch messages from DB
+  };
 
-  try {
-    const res = await fetch(
-      `http://localhost:5000/api/users?email=${receiverEmail}`,
-    );
-    const data = await res.json();
+  const handleSendGroupMessage = () => {
+    if (!newMessage.trim() || !currentGroup) return;
+    socket.emit("group_message", {
+      groupId: currentGroup,
+      senderId: loggedInUser.id,
+      message: newMessage,
+    });
+    setNewMessage("");
+  };
 
-    if (!data || !data.id) return alert("User not found");
+  const fetchGroupMessages = async (groupId) => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/group-messages?groupId=${groupId}`,
+      );
+      const data = await res.json();
+      setMessages(data);
+      scrollToBottom();
+    } catch (err) {
+      console.error("Error fetching group messages:", err);
+    }
+  };
 
-    setReceiverId(data.id);
+  const handleJoinRoom = async () => {
+    if (!receiverEmail.trim()) return;
 
-    // ✅ Compute room ID first
-    const computedRoomId = [senderId, data.id].sort((a, b) => a - b).join("_");
-    setRoomId(computedRoomId);
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/users?email=${receiverEmail}`,
+      );
+      const data = await res.json();
 
-    // ✅ Save current chat in localStorage for page refresh
-    localStorage.setItem(
-      "currentChat",
-      JSON.stringify({
-        id: data.id,
-        email: data.email,
-        roomId: computedRoomId,
-      }),
-    );
+      if (!data || !data.id) return alert("User not found");
 
-    socket.emit("join_room", { roomId: computedRoomId });
-    fetchMessages();
+      setReceiverId(data.id);
 
-    console.log(
-      "Joined room:",
-      computedRoomId,
-      "senderId:",
-      senderId,
-      "receiverId:",
-      data.id,
-    );
-  } catch (err) {
-    console.error(err);
-  }
-};
+      // ✅ Compute room ID first
+      const computedRoomId = [senderId, data.id]
+        .sort((a, b) => a - b)
+        .join("_");
+      setRoomId(computedRoomId);
 
+      localStorage.setItem(
+        "currentChat",
+        JSON.stringify({
+          id: data.id,
+          email: data.email,
+          roomId: computedRoomId,
+        }),
+      );
+
+      socket.emit("join_room", { roomId: computedRoomId });
+      fetchMessages();
+
+      console.log(
+        "Joined room:",
+        computedRoomId,
+        "senderId:",
+        senderId,
+        "receiverId:",
+        data.id,
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <aside className="top-6 left-6 w-[940px] h-full bg-gray-50 rounded-3xl shadow-xl flex flex-col overflow-hidden">
@@ -198,7 +248,7 @@ const handleJoinRoom = async () => {
 
         <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8 bg-gray-50">
           {Array.isArray(messages) &&
-            messages.map((msg) => (
+            messages.map((msg, index) => (
               <div
                 key={msg.id || `${msg.senderId}-${msg.createdAt}-${index}`}
                 className={`flex ${msg.senderId === senderId ? "justify-end" : "justify-start"}`}
