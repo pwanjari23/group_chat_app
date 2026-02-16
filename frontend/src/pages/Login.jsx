@@ -19,12 +19,21 @@ function Login() {
 
   const handleSubmit = async () => {
     try {
-      const res = await axios.post("http://localhost:5000/api/user/login", form); // your backend login endpoint
-      alert(res.data.message); 
+      const res = await axios.post(
+        "http://localhost:5000/api/user/login",
+        form,
+      );
+      alert(res.data.message);
 
+      // Save token
       localStorage.setItem("token", res.data.token);
+
+      // Save logged-in user info
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      // Connect Socket.IO
       connectSocket(res.data.token);
-      
+
       navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.message || "Login failed");

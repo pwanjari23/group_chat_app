@@ -73,18 +73,15 @@ function ChatWindow() {
       const response = await fetch("http://localhost:5000/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          senderId,
-          receiverId,
-          message: newMessage,
-        }),
+        body: JSON.stringify({ senderId, receiverId, message: newMessage }),
       });
 
       const savedMessage = await response.json();
 
+      // ✅ Only emit to Socket.IO, do NOT add to state here
       socket.emit("new_message", { ...savedMessage, roomId });
-      setMessages((prev) => [...prev, savedMessage]);
-      setNewMessage("");
+
+      setNewMessage(""); // clear input
     } catch (err) {
       console.error("Error sending message:", err);
     }
