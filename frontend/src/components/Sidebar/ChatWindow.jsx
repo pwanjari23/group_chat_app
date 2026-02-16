@@ -7,10 +7,12 @@ import {
   Smile,
   Mic,
   Send,
+  Paperclip,
 } from "lucide-react";
 import socket, { connectSocket } from "../../services/socket";
 
 function ChatWindow() {
+  const fileInputRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
@@ -97,6 +99,42 @@ function ChatWindow() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      // Save message in DB
+      const messageRes = await fetch("http://localhost:5000/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderId,
+          receiverId,
+          message: "",
+          mediaUrl: data.url,
+          mediaType: data.type,
+        }),
+      });
+
+      const savedMessage = await messageRes.json();
+
+      socket.emit("new_message", { ...savedMessage, roomId });
+    } catch (err) {
+      console.error("File upload failed:", err);
+    }
   };
 
   const handleSend = async () => {
@@ -270,7 +308,25 @@ function ChatWindow() {
                       : "bg-white text-gray-900 rounded-bl-none border border-gray-200"
                   }`}
                 >
-                  <p className="text-base leading-relaxed">{msg.message}</p>
+                  {msg.mediaUrl ? (
+                    msg.mediaType.startsWith("image") ? (
+                      <img
+                        src={msg.mediaUrl}
+                        alt="media"
+                        className="rounded-lg max-w-xs"
+                      />
+                    ) : msg.mediaType.startsWith("video") ? (
+                      <video controls className="rounded-lg max-w-xs">
+                        <source src={msg.mediaUrl} />
+                      </video>
+                    ) : (
+                      <a href={msg.mediaUrl} target="_blank" rel="noreferrer">
+                        Download File
+                      </a>
+                    )
+                  ) : (
+                    <p className="text-base leading-relaxed">{msg.message}</p>
+                  )}
 
                   <div className="mt-2 flex items-center gap-3 justify-end">
                     <span className="text-sm text-gray-500">
@@ -303,6 +359,20 @@ function ChatWindow() {
               placeholder="Type your message here..."
               className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-500 text-base"
             />
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleFileUpload}
+            />
+
+            <button
+              onClick={() => fileInputRef.current.click()}
+              className="text-gray-500 hover:text-indigo-600"
+            >
+              <Paperclip className="w-7 h-7" />
+            </button>
             <button className="text-gray-500 hover:text-indigo-600">
               <Mic className="w-7 h-7" />
             </button>

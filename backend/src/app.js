@@ -15,6 +15,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/groups", require("./routes/groupsRoute"));
+app.use("/api/upload", require("./routes/uploadRoutes"));
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
