@@ -12,6 +12,7 @@ exports.sendMessage = async (req, res) => {
     });
 
     res.status(201).json(newMessage);
+    console.log("Saving message:", { senderId, receiverId, message });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -27,10 +28,10 @@ exports.getMessages = async (req, res) => {
           { senderId: receiverId, receiverId: senderId },
         ],
       },
-      order: [["createdAt", "ASC"]], 
+      order: [["createdAt", "ASC"]],
     });
 
-    res.json(messages); 
+    res.json(messages);
   } catch (error) {
     console.error("GET MESSAGES ERROR:", error);
     res.status(500).json({ error: error.message });

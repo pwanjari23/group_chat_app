@@ -81,3 +81,24 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 };
+
+exports.getUserByEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email)
+      return res.status(400).json({ message: "Email query is required" });
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    });
+  } catch (err) {
+    console.error("GET USER BY EMAIL ERROR:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};

@@ -11,6 +11,7 @@ app.use(express.json());
 
 app.use("/api/user", userRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/users", userRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
