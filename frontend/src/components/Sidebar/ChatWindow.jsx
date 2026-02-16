@@ -43,6 +43,18 @@ function ChatWindow() {
   };
 
   useEffect(() => {
+    const currentChat = JSON.parse(localStorage.getItem("currentChat"));
+    if (currentChat) {
+      setReceiverId(currentChat.id);
+      setReceiverEmail(currentChat.email);
+      setRoomId(currentChat.roomId);
+
+      socket.emit("join_room", { roomId: currentChat.roomId });
+      console.log("Rejoined room after refresh:", currentChat.roomId);
+    }
+  }, []);
+
+  useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) connectSocket(token);
 
@@ -87,39 +99,49 @@ function ChatWindow() {
     }
   };
 
-  const handleJoinRoom = async () => {
-    if (!receiverEmail.trim()) return;
+const handleJoinRoom = async () => {
+  if (!receiverEmail.trim()) return;
 
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/users?email=${receiverEmail}`,
-      );
-      const data = await res.json();
+  try {
+    const res = await fetch(
+      `http://localhost:5000/api/users?email=${receiverEmail}`,
+    );
+    const data = await res.json();
 
-      if (!data || !data.id) return alert("User not found");
+    if (!data || !data.id) return alert("User not found");
 
-      setReceiverId(data.id);
+    setReceiverId(data.id);
 
-      // ✅ Compute room ID dynamically and correctly
-      const computedRoomId = [senderId, data.id]
-        .sort((a, b) => a - b)
-        .join("_");
-      setRoomId(computedRoomId);
+    // ✅ Compute room ID first
+    const computedRoomId = [senderId, data.id].sort((a, b) => a - b).join("_");
+    setRoomId(computedRoomId);
 
-      socket.emit("join_room", { roomId: computedRoomId });
+    // ✅ Save current chat in localStorage for page refresh
+    localStorage.setItem(
+      "currentChat",
+      JSON.stringify({
+        id: data.id,
+        email: data.email,
+        roomId: computedRoomId,
+      }),
+    );
 
-      console.log(
-        "Joined room:",
-        computedRoomId,
-        "senderId:",
-        senderId,
-        "receiverId:",
-        data.id,
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  };
+    socket.emit("join_room", { roomId: computedRoomId });
+    fetchMessages();
+
+    console.log(
+      "Joined room:",
+      computedRoomId,
+      "senderId:",
+      senderId,
+      "receiverId:",
+      data.id,
+    );
+  } catch (err) {
+    console.error(err);
+  }
+};
+
 
   return (
     <aside className="top-6 left-6 w-[940px] h-full bg-gray-50 rounded-3xl shadow-xl flex flex-col overflow-hidden">
