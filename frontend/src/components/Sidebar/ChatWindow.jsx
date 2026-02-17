@@ -16,10 +16,12 @@ function ChatWindow() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
-  const [receiverId, setReceiverId] = useState(null); // ✅ add this
-  const [receiverEmail, setReceiverEmail] = useState(""); // you already have this
-  const [roomId, setRoomId] = useState(""); // store current room
+  const [receiverId, setReceiverId] = useState(null);
+  const [receiverEmail, setReceiverEmail] = useState("");
+  const [roomId, setRoomId] = useState("");
   const [currentGroup, setCurrentGroup] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const typingTimeout = useRef(null);
 
   const loggedInUser = JSON.parse(localStorage.getItem("user")) || {};
   const senderId = loggedInUser.id;
@@ -244,6 +246,34 @@ function ChatWindow() {
     }
   };
 
+  const handleTyping = (value) => {
+    setNewMessage(value);
+
+    if (typingTimeout.current) {
+      clearTimeout(typingTimeout.current);
+    }
+
+    typingTimeout.current = setTimeout(async () => {
+      if (value.length < 3) return;
+
+      const res = await fetch("http://localhost:5000/api/ai/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          context: messages
+            .slice(-5)
+            .map((m) => m.message)
+            .join("\n"),
+          partialMessage: value,
+          tone: "casual",
+        }),
+      });
+
+      const data = await res.json();
+      setSuggestions(data.suggestions || []);
+    }, 500); // debounce
+  };
+
   return (
     <aside className="top-6 left-6 w-[940px] h-full bg-gray-50 rounded-3xl shadow-xl flex flex-col overflow-hidden">
       <div className="flex flex-col h-full bg-gray-50">
@@ -350,6 +380,23 @@ function ChatWindow() {
         </div>
 
         <div className="px-8 py-5 bg-white border-t border-gray-200">
+          {suggestions.length > 0 && (
+            <div className="flex gap-2 mb-2 px-6">
+              {suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setNewMessage(s);
+                    setSuggestions([]);
+                  }}
+                  className="bg-gray-200 px-3 py-1 rounded-full text-sm hover:bg-gray-300"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center gap-4 bg-gray-100 rounded-2xl px-6 py-4">
             <button className="text-gray-500 hover:text-indigo-600">
               <Smile className="w-7 h-7" />
@@ -357,7 +404,7 @@ function ChatWindow() {
             <input
               type="text"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={(e) => handleTyping(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Type your message here..."
               className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-500 text-base"
