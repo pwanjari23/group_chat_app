@@ -1,18 +1,36 @@
 const { Op } = require("sequelize");
 const { Message } = require("../models");
 
+// exports.sendMessage = async (req, res) => {
+//   try {
+//     const { senderId, receiverId, message } = req.body;
+
+//     const newMessage = await Message.create({
+//       senderId,
+//       receiverId,
+//       message,
+//     });
+
+//     res.status(201).json(newMessage);
+//     console.log("Saving message:", { senderId, receiverId, message });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 exports.sendMessage = async (req, res) => {
   try {
-    const { senderId, receiverId, message } = req.body;
+    const { senderId, receiverId, message, mediaUrl, mediaType } = req.body;
 
     const newMessage = await Message.create({
       senderId,
       receiverId,
-      message,
+      message: message || null,
+      mediaUrl: mediaUrl || null,
+      mediaType: mediaType || null,
     });
 
     res.status(201).json(newMessage);
-    console.log("Saving message:", { senderId, receiverId, message });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

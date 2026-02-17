@@ -173,13 +173,16 @@ function ChatWindow() {
   };
 
   const handleSendGroupMessage = () => {
-    if (!newMessage.trim() || !currentGroup) return;
-
-    socket.emit("group_message", {
-      groupId: currentGroup,
-      senderId: loggedInUser.id,
-      message: newMessage,
-    });
+    if (currentGroup) {
+      socket.emit("group_message", {
+        groupId: currentGroup,
+        senderId,
+        mediaUrl: data.url,
+        mediaType: data.type,
+      });
+    } else {
+      socket.emit("new_message", { ...savedMessage, roomId });
+    }
 
     setNewMessage("");
   };

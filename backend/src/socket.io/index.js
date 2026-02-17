@@ -19,11 +19,21 @@ function initializeSocket(server) {
       console.log(`User ${socket.id} joined personal room ${roomId}`);
     });
 
-    socket.on("new_message", ({ roomId, senderId, receiverId, message, id, createdAt }) => {
-      const msg = { roomId, senderId, receiverId, message, id, createdAt: createdAt || new Date() };
-      io.to(roomId).emit("new_message", msg);
-      console.log("Message sent in personal room:", msg);
-    });
+    socket.on(
+      "new_message",
+      ({ roomId, senderId, receiverId, message, id, createdAt }) => {
+        const msg = {
+          roomId,
+          senderId,
+          receiverId,
+          message,
+          id,
+          createdAt: createdAt || new Date(),
+        };
+        io.to(roomId).emit("new_message", msg);
+        console.log("Message sent in personal room:", msg);
+      },
+    );
 
     // ----------------------
     // Group Chat
@@ -33,12 +43,21 @@ function initializeSocket(server) {
       console.log(`User ${socket.id} joined group ${groupId}`);
     });
 
-    socket.on("group_message", ({ groupId, senderId, message }) => {
-      const msg = { groupId, senderId, message, createdAt: new Date() };
-      io.to(groupId).emit("new_group_message", msg);
-      console.log("Message sent in group:", msg);
-      // TODO: Save group messages to DB if needed
-    });
+    socket.on(
+      "group_message",
+      ({ groupId, senderId, message, mediaUrl, mediaType }) => {
+        const msg = {
+          groupId,
+          senderId,
+          message: message || null,
+          mediaUrl: mediaUrl || null,
+          mediaType: mediaType || null,
+          createdAt: new Date(),
+        };
+
+        io.to(groupId).emit("new_group_message", msg);
+      },
+    );
 
     // ----------------------
     // Disconnect

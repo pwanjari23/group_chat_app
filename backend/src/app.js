@@ -5,12 +5,14 @@ const userRoutes = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const usersRoute = require("./routes/usersRoute");
 const groupsRoute = require("./routes/groupsRoute");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+app.use("/api/upload", uploadRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/users", userRoutes);
