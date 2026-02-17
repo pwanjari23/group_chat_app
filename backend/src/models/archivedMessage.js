@@ -1,7 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
-const Message = sequelize.define("Message", {
+const ArchivedMessage = sequelize.define("ArchivedMessage", {
   senderId: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -22,11 +22,8 @@ const Message = sequelize.define("Message", {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  indexes: [
-    { fields: ["senderId"] },
-    { fields: ["receiverId"] },
-    { fields: ["createdAt"] },
-  ],
+}, {
+  tableName: "ArchivedMessages",
 });
 
-module.exports = Message;
+module.exports = ArchivedMessage;

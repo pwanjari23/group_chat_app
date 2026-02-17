@@ -3,6 +3,7 @@ const app = require("./app");
 const sequelize = require("./config/database");
 const http = require("http");
 const initializeSocket = require("../src/socket.io/index");
+const archiveOldMessages = require("./jobs/archiveMessages");
 
 const server = http.createServer(app);
 
@@ -25,5 +26,6 @@ async function syncDatabase() {
 }
 
 syncDatabase();
+archiveOldMessages();
 
 module.exports = { io };
